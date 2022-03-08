@@ -1,0 +1,97 @@
+# The following Python code lets us download the required data text files onto our
+# destination directory defined by the data_folder variable. In this example, the
+# folder named data is used. If this folder does not exist in your working directory,
+# create one now before running the codes:
+from urllib.request import urlretrieve
+url_path = 'http://www.stoxx.com/download/historical_values/'
+stoxxeu600_url = url_path + 'hbrbcpe.txt'
+vstoxx_url = url_path + 'h_vstoxx.txt'
+data_folder = 'data/' # Save file to local target destination.
+stoxxeu600_filepath = data_folder + "stoxxeu600.txt"
+vstoxx_filepath = data_folder + "vstoxx.txt" 
+# Now, we will run the following command to download the STOXX Europe 600 Index
+# data file:
+urlretrieve(stoxxeu600_url, stoxxeu600_filepath)
+# We can do the same to download the VSTOXX data file:
+urlretrieve(vstoxx_url, vstoxx_filepath)
+# To check whether our data has been downloaded successfully to our hard disk, run
+# the following command:
+import os.path 
+os.path.isfile(stoxxeu600_filepath)
+os.path.isfile(vstoxx_filepath)
+# If the file exists, the output will be true, or the output will be false
+# The semicolons separate the data in the STOXX Europe 600 text file. In the last 
+# of the top four rows of information lie our headers of interest, being Date, SX5P,
+# SX5E, SXXP, SXXE, SXXF, SXXA, DK5F, and DKXF.With this information, we can begin 
+# to parse the data with pandas into a DataFrame object, as explained in the following code:
+import pandas as pd
+columns = ['Date', 'SX5P', 'SX5E', 'SXXP', 'SXXE',
+ 'SXXF', 'SXXA', 'DK5F', 'DKXF', 'EMPTY']
+stoxxeu600 = pd.read_csv(stoxxeu600_filepath,index_col=0,
+                         parse_dates=True, 
+                         dayfirst=True, 
+                         header=None, 
+                         skiprows=4, 
+                         names=columns,
+                         sep=';'
+                         )
+del stoxxeu600['EMPTY']
+# Here, we added an extra EMPTY column to the account for the trailing semicolons
+# found at certain rows in the data. The extra column information is deleted after
+# the parsing is done.
+# In the same fashion, we will do the same for the STOXX Europe 600 data file. We will
+# parse the VSTOXX data text file to a pandas DataFrame object:
+vstoxx = pd.read_csv(vstoxx_filepath, 
+                     index_col=0, 
+                     parse_dates=True, 
+                     dayfirst=True, 
+                     header=2)
+# Since the earliest dates in the text files are 31.12.1986 and 04.01.1999 for the
+# STOXX Europe 600 and VSTOXX data file respectively, we will require both the
+# datasets to begin from a common date at 04.01.1999. We will also use values from
+# the SX5E and V2TX columns to retrieve our EURO STOXX 50 Index and VSTOXX
+# historical data values. The following Python code extracts these values into a new
+# Pandas DataFrame object:
+import datetime as dt
+cutoff_date = dt.datetime(1999, 1, 4)
+data = pd.DataFrame(
+{'EUROSTOXX' :stoxxeu600['SX5E'][stoxxeu600.index >= cutoff_date],
+ 'VSTOXX':vstoxx['V2TX'][vstoxx.index >= cutoff_date]})
+# Pandas allows the values in the DataFrame object to be visualized as a graph using
+# the plot function. Let's plot the EURO STOXX 50 and VSTOX to see how they look
+# like over the years:
+from pylab import *
+data.plot(subplots=True, 
+          figsize=(10, 8), 
+          color="blue", 
+          grid=True)
+show()
+# Perhaps we might be interested in the daily returns of both the indexes. The diff
+# method returns the set of differences between the prior period values. A histogram
+# can be used to give us a rough sense of the data density estimation over a bin interval
+# of 100:
+data.diff().hist(figsize=(10, 5), 
+                 color='blue', 
+                 bins=100)
+# The same effect can also be achieved with the pct_change function that gives us the
+# percentage change over the prior period values:
+data.pct_change().hist(figsize=(10, 5), 
+                       color='blue', 
+                       bins=100)
+# We use the logrithm of daily returns here.The reason behind this method is to normalize and 
+# avoid the problem of negative prices.
+# We can use the shift function of pandas to shift the values by a certain number of
+# periods. The dropna function removes the unused values at the end of the logarithm
+# calculation transformation. The log function of NumPy helps you calculate the
+# logarithm of all values in the DataFrame object as a vector and will be stored in
+# the log_returns variable as a DataFrame object. The logarithm values can then be
+# plotted in the same way as we did earlier, to give us a graph of daily log returns.
+# Here is the code to plot the logarithm values:
+from pylab import *
+import numpy as np
+log_returns = np.log(data / data.shift(1)).dropna()
+log_returns.plot(subplots=True, 
+                 figsize=(10, 8), 
+                 color='blue', 
+                 grid=True) 
+show()
