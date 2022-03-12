@@ -95,3 +95,18 @@ log_returns.plot(subplots=True,
                  color='blue', 
                  grid=True) 
 show()
+# Then we use corr function to calculate the correlation of each vector in DataFrame
+print log_returns.corr()
+# We can see that at -0.7325, teh Euro Stoxx 50 index is negative correlated with Stoxx. X.
+# To better visualize this relationship, we can plot both the sets of the daily log
+# return values as a scatter plot. The statsmodels.api module is used to obtain the
+# ordinary least squares regression line between the scattered data:
+import statsmodels.api as sm
+log_returns.plot(figsize=(10,8),
+                 x="EUROSTOXX",
+                 y="VSTOXX",
+                 kind='scatter')
+ols_fit = sm.OLS(log_returns['VSTOXX'].values,
+            log_returns['EUROSTOXX'].values).fit()
+plot(log_returns['EURPSTOXX'], ols_fit.fittedvalues,'r')
+[<matplotlib..lines.Line2D at 0x11704550>]
